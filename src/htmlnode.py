@@ -33,8 +33,31 @@ class LeafNode(HTMLNode):
         if self.value is None:
             raise ValueError("no given value")
         elif not self.tag:
-            return f'\"{self.value}\"'
+            return f'{self.value}'
         return f'<{self.tag}{self.props_to_html()}>{self.value}</{self.tag}>'
 
     def __repr__(self):
         return f"LeafNode({self.tag}, {self.value}, {self.props})"
+
+
+class ParentNode(HTMLNode):
+    def __init__(self, tag, children, props=None):
+        super().__init__(tag, None, children, props=props)
+        self.tag = tag
+        self.children = children
+        self.props = props
+
+    def to_html(self):
+        if not self.tag:
+            raise ValueError("no given tag")
+        if self.children is None:
+            raise ValueError("no children given")
+        if len(self.children) == 0:
+            raise ValueError("empty children list")
+
+        final_html = f'<{self.tag}>'
+        for child in self.children:
+            final_html += child.to_html()
+        final_html += f'</{self.tag}>'
+
+        return final_html
