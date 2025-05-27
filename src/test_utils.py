@@ -1,6 +1,12 @@
 import unittest
+
 from textnode import TextNode, TextType
-from utils import text_node_to_html_node, split_nodes_delimiter
+from utils import (
+    extract_markdown_images,
+    extract_markdown_links,
+    split_nodes_delimiter,
+    text_node_to_html_node,
+)
 
 
 class TestTextToHtml(unittest.TestCase):
@@ -43,10 +49,9 @@ class TestTextToHtml(unittest.TestCase):
         html_node = text_node_to_html_node(node)
         self.assertEqual(html_node.tag, "img")
         self.assertEqual(html_node.value, "")
-        self.assertEqual(html_node.props, {
-            "src": "https://example.com/image.png",
-            "alt": "Alt text"
-        })
+        self.assertEqual(
+            html_node.props, {"src": "https://example.com/image.png", "alt": "Alt text"}
+        )
 
 
 class TestSplitNodesDelimiter(unittest.TestCase):
@@ -58,7 +63,7 @@ class TestSplitNodesDelimiter(unittest.TestCase):
             [
                 TextNode("Hello ", TextType.TEXT),
                 TextNode("world", TextType.BOLD),
-            ]
+            ],
         )
 
     def test_multiple_inline_delimiters(self):
@@ -71,7 +76,7 @@ class TestSplitNodesDelimiter(unittest.TestCase):
                 TextNode("is", TextType.BOLD),
                 TextNode(" a ", TextType.TEXT),
                 TextNode("test", TextType.BOLD),
-            ]
+            ],
         )
 
     def test_invalid_delimiter(self):
@@ -84,7 +89,9 @@ class TestSplitNodesDelimiter(unittest.TestCase):
         nodes = [TextNode("Hello **world**", TextType.TEXT)]
         with self.assertRaises(ValueError) as context:
             split_nodes_delimiter(nodes, "**", TextType.ITALIC)
-        self.assertIn("Delimiter '**' does not match text type 'italic'", str(context.exception))
+        self.assertIn(
+            "Delimiter '**' does not match text type 'italic'", str(context.exception)
+        )
 
     def test_unmatched_delimiter(self):
         nodes = [TextNode("Hello **world", TextType.TEXT)]
@@ -115,7 +122,37 @@ class TestSplitNodesDelimiter(unittest.TestCase):
                 TextNode("This is plain", TextType.TEXT),
                 TextNode("This is bold", TextType.BOLD),
                 TextNode("This is italic", TextType.ITALIC),
-            ]
+            ],
+        )
+
+
+class TestMarkdownExtractions(unittest.TestCase):
+    def test_link_extraction(self):
+        self.assertEqual(
+            extract_markdown_links("[Google](https://google.com)"),
+            [("Google", "https://google.com")],
+        )
+        self.assertEqual(
+            extract_markdown_links("Visit [GitHub](https://github.com) today!"),
+            [("GitHub", "https://github.com")],
+        )
+
+        self.assertEqual(
+            extract_markdown_links("[A](a.com) and [B](b.com)"),
+            [("A", "a.com"), ("B", "b.com")],
+        )
+
+    def test_extract_markdown_images(self):
+        self.assertEqual(
+            extract_markdown_images("![Python](python.png)"), [("Python", "python.png")]
+        )
+        self.assertEqual(
+            extract_markdown_images("Here's an ![logo](logo.jpg) inside text."),
+            [("logo", "logo.jpg")],
+        )
+        self.assertEqual(
+            extract_markdown_images("![A](a.png) and ![B](b.png)"),
+            [("A", "a.png"), ("B", "b.png")],
         )
 
 
