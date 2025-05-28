@@ -1,13 +1,14 @@
 import unittest
 
-from textnode import TextNode, TextType
-from utils import (
+from textnode import TextNode, TextType, text_node_to_html_node
+from markdown import (
     extract_markdown_images,
     extract_markdown_links,
     split_nodes_delimiter,
-    text_node_to_html_node,
     split_nodes_image,
-    split_nodes_link
+    split_nodes_link,
+    text_to_textnodes,
+    markdown_to_blocks
 )
 
 
@@ -161,8 +162,7 @@ class TestMarkdownExtractions(unittest.TestCase):
 class TestSplitNodesImgLink(unittest.TestCase):
     def test_split_link_single(self):
         node = TextNode(
-            "This is text with a [link](https://example.com) in it",
-            TextType.TEXT
+            "This is text with a [link](https://example.com) in it", TextType.TEXT
         )
         new_nodes = split_nodes_link([node])
         self.assertEqual(
@@ -171,7 +171,7 @@ class TestSplitNodesImgLink(unittest.TestCase):
                 TextNode("This is text with a ", TextType.TEXT),
                 TextNode("link", TextType.LINK, "https://example.com"),
                 TextNode(" in it", TextType.TEXT),
-            ]
+            ],
         )
 
     def test_split_images(self):
@@ -191,12 +191,9 @@ class TestSplitNodesImgLink(unittest.TestCase):
             ],
             new_nodes,
         )
-    
+
     def test_split_link_edge_positions(self):
-        node = TextNode(
-            "[start](start.com) middle [end](end.com)",
-            TextType.TEXT
-        )
+        node = TextNode("[start](start.com) middle [end](end.com)", TextType.TEXT)
         new_nodes = split_nodes_link([node])
         self.assertEqual(
             new_nodes,
@@ -204,7 +201,7 @@ class TestSplitNodesImgLink(unittest.TestCase):
                 TextNode("start", TextType.LINK, "start.com"),
                 TextNode(" middle ", TextType.TEXT),
                 TextNode("end", TextType.LINK, "end.com"),
-            ]
+            ],
         )
 
     def test_non_text_node(self):
@@ -214,8 +211,7 @@ class TestSplitNodesImgLink(unittest.TestCase):
 
     def test_mixed_content(self):
         node = TextNode(
-            "Text ![image](img.png) with [link](url.com) mixed",
-            TextType.TEXT
+            "Text ![image](img.png) with [link](url.com) mixed", TextType.TEXT
         )
         # First split images
         image_nodes = split_nodes_image([node])
@@ -229,7 +225,7 @@ class TestSplitNodesImgLink(unittest.TestCase):
                 TextNode(" with ", TextType.TEXT),
                 TextNode("link", TextType.LINK, "url.com"),
                 TextNode(" mixed", TextType.TEXT),
-            ]
+            ],
         )
 
     def test_split_empty_text(self):
@@ -246,8 +242,83 @@ class TestSplitNodesImgLink(unittest.TestCase):
                 TextNode("Here's an ", TextType.TEXT),
                 TextNode("image", TextType.IMAGE, ""),
                 TextNode(" with empty URL", TextType.TEXT),
-            ]
+            ],
         )
+
+
+class TestTextToTextNode(unittest.TestCase):
+    def test_empty_text(self):
+        self.assertEqual(text_to_textnodes(""), [])
+
+    def test_mixed_markdown(self):
+        nodes = text_to_textnodes(
+            "This is **bold**, _italic_, `code`, ![image](url), and [link](url)"
+        )
+        self.assertEqual(
+            nodes,
+            [
+                TextNode("This is ", TextType.TEXT),
+                TextNode("bold", TextType.BOLD),
+                TextNode(", ", TextType.TEXT),
+                TextNode("italic", TextType.ITALIC),
+                TextNode(", ", TextType.TEXT),
+                TextNode("code", TextType.CODE),
+                TextNode(", ", TextType.TEXT),
+                TextNode("image", TextType.IMAGE, "url"),
+                TextNode(", and ", TextType.TEXT),
+                TextNode("link", TextType.LINK, "url"),
+            ],
+        )
+
+
+class TestMarkdownToBlocks(unittest.TestCase):
+
+    def test_markdown_to_blocks(self):
+        md = """
+This is **bolded** paragraph
+
+This is another paragraph with _italic_ text and `code` here
+This is the same paragraph on a new line
+
+- This is a list
+- with items
+"""
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(
+            blocks,
+            [
+                "This is **bolded** paragraph",
+                "This is another paragraph with _italic_ text and `code` here\nThis is the same paragraph on a new line",
+                "- This is a list\n- with items",
+            ],
+        )
+
+    def test_edge_cases(self):
+        self.assertEqual(markdown_to_blocks(""), [])
+        
+        self.assertEqual(markdown_to_blocks("   \n\n  \n"), [])
+        
+        md = "   \n\nSingle block\n\n   "
+        self.assertEqual(markdown_to_blocks(md), ["Single block"])
+
+    def test_consecutive_empty_lines(self):
+        md = """
+First block
+
+
+Second block after multiple newlines
+
+
+Third block
+
+
+"""
+        expected = [
+            "First block",
+            "Second block after multiple newlines",
+            "Third block"
+        ]
+        self.assertEqual(markdown_to_blocks(md), expected)
 
 
 if __name__ == "__main__":
