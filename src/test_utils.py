@@ -6,6 +6,8 @@ from utils import (
     extract_markdown_links,
     split_nodes_delimiter,
     text_node_to_html_node,
+    split_nodes_image,
+    split_nodes_link
 )
 
 
@@ -153,6 +155,98 @@ class TestMarkdownExtractions(unittest.TestCase):
         self.assertEqual(
             extract_markdown_images("![A](a.png) and ![B](b.png)"),
             [("A", "a.png"), ("B", "b.png")],
+        )
+
+
+class TestSplitNodesImgLink(unittest.TestCase):
+    def test_split_link_single(self):
+        node = TextNode(
+            "This is text with a [link](https://example.com) in it",
+            TextType.TEXT
+        )
+        new_nodes = split_nodes_link([node])
+        self.assertEqual(
+            new_nodes,
+            [
+                TextNode("This is text with a ", TextType.TEXT),
+                TextNode("link", TextType.LINK, "https://example.com"),
+                TextNode(" in it", TextType.TEXT),
+            ]
+        )
+
+    def test_split_images(self):
+        node = TextNode(
+            "This is text with an ![image](https://i.imgur.com/zjjcJKZ.png) and another ![second image](https://i.imgur.com/3elNhQu.png)",
+            TextType.TEXT,
+        )
+        new_nodes = split_nodes_image([node])
+        self.assertListEqual(
+            [
+                TextNode("This is text with an ", TextType.TEXT),
+                TextNode("image", TextType.IMAGE, "https://i.imgur.com/zjjcJKZ.png"),
+                TextNode(" and another ", TextType.TEXT),
+                TextNode(
+                    "second image", TextType.IMAGE, "https://i.imgur.com/3elNhQu.png"
+                ),
+            ],
+            new_nodes,
+        )
+    
+    def test_split_link_edge_positions(self):
+        node = TextNode(
+            "[start](start.com) middle [end](end.com)",
+            TextType.TEXT
+        )
+        new_nodes = split_nodes_link([node])
+        self.assertEqual(
+            new_nodes,
+            [
+                TextNode("start", TextType.LINK, "start.com"),
+                TextNode(" middle ", TextType.TEXT),
+                TextNode("end", TextType.LINK, "end.com"),
+            ]
+        )
+
+    def test_non_text_node(self):
+        node = TextNode("This shouldn't change", TextType.BOLD)
+        new_nodes = split_nodes_link([node])
+        self.assertEqual(new_nodes, [node])
+
+    def test_mixed_content(self):
+        node = TextNode(
+            "Text ![image](img.png) with [link](url.com) mixed",
+            TextType.TEXT
+        )
+        # First split images
+        image_nodes = split_nodes_image([node])
+        # Then split links from those results
+        link_nodes = split_nodes_link(image_nodes)
+        self.assertEqual(
+            link_nodes,
+            [
+                TextNode("Text ", TextType.TEXT),
+                TextNode("image", TextType.IMAGE, "img.png"),
+                TextNode(" with ", TextType.TEXT),
+                TextNode("link", TextType.LINK, "url.com"),
+                TextNode(" mixed", TextType.TEXT),
+            ]
+        )
+
+    def test_split_empty_text(self):
+        node = TextNode("", TextType.TEXT)
+        new_nodes = split_nodes_link([node])
+        self.assertEqual(new_nodes, [])
+
+    def test_split_image_empty_url(self):
+        node = TextNode("Here's an ![image]() with empty URL", TextType.TEXT)
+        new_nodes = split_nodes_image([node])
+        self.assertEqual(
+            new_nodes,
+            [
+                TextNode("Here's an ", TextType.TEXT),
+                TextNode("image", TextType.IMAGE, ""),
+                TextNode(" with empty URL", TextType.TEXT),
+            ]
         )
 
 
