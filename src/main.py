@@ -1,9 +1,9 @@
-from textnode import TextType, TextNode
+from utils import clean_copy, generate_page
 
 
 def main():
-    textnode = TextNode("This is some anchor text", TextType.LINKS, "https://www.boot.dev")
-    print(textnode)
+    clean_copy("static/", "public/")
+    generate_page("src/content/index.md", "template.html", "public/index.html")
 
 
 if __name__ == "__main__":

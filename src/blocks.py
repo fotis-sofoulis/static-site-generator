@@ -42,6 +42,16 @@ def block_to_block_type(block):
         return BlockType.PARAGRAPH
 
 
+def extract_title(markdown):
+    if not markdown:
+        raise ValueError("empty markdown")
+    blocks = [block.strip() for block in markdown.strip().splitlines() if block.strip()]
+    for block in blocks:
+        if block.startswith("# "):
+            return block[2:]
+    raise Exception("no heading title")
+
+
 def markdown_to_html_node(markdown):
     blocks = markdown_to_blocks(markdown)
     return ParentNode("div", [block_to_html_node(block) for block in blocks], None)

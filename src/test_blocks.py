@@ -3,8 +3,9 @@ import unittest
 from blocks import (
     BlockType,
     block_to_block_type,
+    extract_title,
     markdown_to_blocks,
-    markdown_to_html_node
+    markdown_to_html_node,
 )
 
 
@@ -238,6 +239,21 @@ the **same** even with inline stuff
             html,
             "<div><pre><code>This is text that _should_ remain\nthe **same** even with inline stuff\n</code></pre></div>",
         )
+
+
+class TestExtractTitle(unittest.TestCase):
+    def test_valid_heading(self):
+        markdown = "## Not this\n# Title\nMore text"
+        self.assertEqual(extract_title(markdown), "Title")
+
+    def test_no_heading(self):
+        markdown = "No heading here\nJust text"
+        with self.assertRaises(Exception):
+            extract_title(markdown)
+
+    def test_empty_input(self):
+        with self.assertRaises(ValueError):
+            extract_title("")
 
 
 if __name__ == "__main__":
