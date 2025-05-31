@@ -35,35 +35,44 @@ def read_if_valid(path):
         return file.read()
 
 
-def generate_page(src_path, template_path, dest_path):
+def generate_page(src_path, template_path, dest_path, basepath):
     print(f"Generating page from {src_path} to {dest_path} using {template_path}")
     md_file = read_if_valid(src_path)
     tmpl_file = read_if_valid(template_path)
     content = markdown_to_html_node(md_file).to_html()
     title = extract_title(md_file)
 
-    final_html = tmpl_file.replace("{{ Title }}", title).replace(
+    final_html = tmpl_file.replace(
+        "{{ Title }}", title
+    ).replace(
         "{{ Content }}", content
+    ).replace(
+        "href=\"/",
+        f"href=\"{basepath}"
+    ).replace(
+        "src=\"/",
+        f"src=\"{basepath}"
     )
+
     os.makedirs(os.path.dirname(dest_path), exist_ok=True)
 
     with open(dest_path, "w") as file:
         file.write(final_html)
 
 
-def generate_pages_recursive(content_dir, template_path, destination_dir):
+def generate_pages_recursive(content_dir, template_path, destination_dir, basepath):
     for curr in os.listdir(content_dir):
         full_path = os.path.join(content_dir, curr)
         dest_path = os.path.join(destination_dir, curr)
         if os.path.isfile(full_path):
             if dest_path.endswith(".md"):
                 dest_path = dest_path[:-3] + '.html'
-                generate_page(full_path, template_path, dest_path)
+                generate_page(full_path, template_path, dest_path, basepath)
             else:
                 os.makedirs(os.path.dirname(dest_path), exist_ok=True)
                 shutil.copy(full_path, dest_path)
         else:
-            generate_pages_recursive(full_path, template_path, dest_path)
+            generate_pages_recursive(full_path, template_path, dest_path, basepath)
 
 
 
