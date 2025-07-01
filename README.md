@@ -1,7 +1,7 @@
 # static-site-generator
 This is a guided project on creating a static site generator, which takes raw content, or markdown files, and turns them into a static website
 
-## Setup Instructions ⚙
+## ⚙ Setup Instructions
 
 1. Install Python and Git:
 
@@ -30,6 +30,6 @@ pip install -r requirements.txt
 python3 main.py
 ```
 
-# ToDo --> 
+## 📋 ToDo
 1. Create implementation for `word/docx` files.
 2. Update to `uv` package manager.
